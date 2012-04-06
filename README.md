@@ -1,6 +1,6 @@
 ### Erlang Childspec Validator
 
-Validate your childspecs before you use them. This will ensure things start properly and increase the probability hot upgrades will be performed correctly.
+Validate your childspecs before you use them. It attempts to find the most common mistakes in childspecs and let you know about them. This will ensure things start properly and increase the probability hot upgrades will be performed correctly.
 
 ### Usage
 

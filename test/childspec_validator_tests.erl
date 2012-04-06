@@ -56,6 +56,14 @@ negative() ->
 
     false = childspec_validator:validate(Web),
 
-    NotAtomID = {123, {m, f, []}, blah, werker, []},
+    NotAtomID = {123, {m, f, []}, blah, 123, werker, []},
 
-    false = childspec_validator:validate(NotAtomID).
+    false = childspec_validator:validate(NotAtomID),
+
+    NotOnPath = {asdf, {blahblahblah123, f, []}, blah, 123, blah, []},
+
+    false = childspec_validator:validate(NotOnPath),
+
+    BadPattern = {zxc, asdf, asdf, 123, asdf},
+
+    false = childspec_validator:validate(BadPattern).

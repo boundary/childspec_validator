@@ -3,52 +3,67 @@
 -export([validate/1]).
 
 validate({Id, {M, F, A}, Restart, Shutdown, Type, Modules}) when is_atom(Id) ->
-    MFARes = validate_and_error(check_mfa(M, F, A),
-                                "Childspec validation error [~p]:"
-                                " MFA check failed, the arity or"
-                                " function name is incorrect.~n",
-                                [Id]),
+    case code:ensure_loaded(M) of
+        {module, _} ->
+            MFARes = validate_and_error(check_mfa(M, F, A),
+                                        "Childspec validation error [~p]:"
+                                        " MFA check failed, make sure the"
+                                        " arity and function name are correct~n",
+                                        [Id]),
 
-    RestartRes = validate_and_error(check_restart(Restart),
-                                    "Childspec validation error [~p]:"
-                                    " Restart is not permanent, temporary"
-                                    " or transient.~n",
-                                    [Id]),
+            RestartRes = validate_and_error(check_restart(Restart),
+                                            "Childspec validation error [~p]:"
+                                            " Restart is not permanent, temporary"
+                                            " or transient.~n",
+                                            [Id]),
 
-    ShutdownRes = validate_and_error(check_shutdown(Shutdown),
-                                     "Childspec validation error [~p]:"
-                                     " Shutdown is not brutal_kill,"
-                                     " infinity or an integer.~n",
-                                     [Id]),
+            ShutdownRes = validate_and_error(check_shutdown(Shutdown),
+                                             "Childspec validation error [~p]:"
+                                             " Shutdown is not brutal_kill,"
+                                             " infinity or an integer.~n",
+                                             [Id]),
 
-    TypeRes = validate_and_error(check_type(M, Type),
-                                 "Childspec validation error [~p]:"
-                                 " Module type mismatch, if module is"
-                                 " a supervisor it should be the atom"
-                                 " 'supervisor', if not it should be"
-                                 " the atom 'worker'.~n",
-                                 [Id]),
+            TypeRes = validate_and_error(check_type(M, Type),
+                                         "Childspec validation error [~p]:"
+                                         " Module type mismatch, if module is"
+                                         " a supervisor it should be the atom"
+                                         " 'supervisor', if not it should be"
+                                         " the atom 'worker'.~n",
+                                         [Id]),
 
-    ModsRes = validate_and_error(check_modules(M, Modules),
-                                 "Childspec validation error [~p]:"
-                                 " Modules mismatch, if gen_event it"
-                                 " should be the atom 'dynamic', else"
-                                 " should be a list including the"
-                                 " callback module as its only"
-                                 " element.~n",
-                                 [Id]),
+            ModsRes = validate_and_error(check_modules(M, Modules),
+                                         "Childspec validation error [~p]:"
+                                         " Modules mismatch, if gen_event it"
+                                         " should be the atom 'dynamic', else"
+                                         " should be a list including the"
+                                         " callback module as its only"
+                                         " element.~n",
+                                         [Id]),
 
-    Results = [MFARes, RestartRes, ShutdownRes, TypeRes, ModsRes],
+            Results = [MFARes, RestartRes, ShutdownRes, TypeRes, ModsRes],
 
-    case lists:member(false, Results) of
-        true ->
-            false;
-        _ ->
-            true
+            case lists:member(false, Results) of
+                true ->
+                    false;
+                _ ->
+                    true
+            end;
+        {error, _} ->
+            error_logger:error_msg("Childspec validation error [~p]:"
+                                   " The module specified in childspec"
+                                   " is not on the code path.~n",
+                                   [Id]),
+            false
     end;
-validate(_) ->
+
+validate({Id, {_, _, _}, _, _, _, _}) when is_atom(Id) == false ->
     error_logger:error_msg("Childspec validation error:"
                            " Childspec ID is not an atom.~n", []),
+    false;
+validate(_) ->
+    error_logger:error_msg("Childspec validation error:"
+                           " Childspec does not match correct tuple"
+                           " pattern.~n", []),
     false.
 
 %%
@@ -76,7 +91,7 @@ check_mfa(M, F, A) ->
             case proplists:get_value(F, Exports) of
                 Arity ->
                     ok;
-                _ ->
+                        _ ->
                     error
             end;
         _ ->
